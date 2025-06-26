@@ -1,87 +1,51 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const Task = require("../models/Task.js");
+const Task = require('../models/Task');
 
-//CREATE TASK
-router.post("/create", async(req, res) => {
-    try {
-        const task = await Task.create({...req.body, completed: false });
-        res.status(201).send({ message: "Task successfully created", task });
-    } catch (error) {
-        console.error(error);
-        res
-            .status(500)
-            .send({ message: "There was a problem trying to create a task" });
-    }
+// POST /create - Crear una tarea
+router.post('/create', async (req, res) => {
+  try {
+    const { title } = req.body;
+    if (!title) return res.status(400).json({ message: 'El título es requerido' });
+    const task = new Task({ title });
+    await task.save();
+    res.status(201).json(task);
+  } catch (error) {
+    res.status(500).json({ message: 'Error creando la tarea', error });
+  }
 });
 
-//GET TASKS
-
-router.get("/", async(req, res) => {
-    try {
-        const tasks = await Task.find();
-        res.send(tasks);
-    } catch (error) {
-        console.error(error);
-    }
+// GET / - Obtener todas las tareas
+router.get('/', async (req, res) => {
+  try {
+    const tasks = await Task.find();
+    res.status(200).json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: 'Error obteniendo las tareas', error });
+  }
 });
 
-//GET TASK BY ID
+// PUT /id/:_id - Actualizar el título de una tarea
+router.put('/id/:_id', async (req, res) => {
+  try {
+    const { title } = req.body;
+    const task = await Task.findByIdAndUpdate(req.params._id, { title }, { new: true });
+    if (!task) return res.status(404).json({ message: 'Tarea no encontrada' });
+    res.status(200).json(task);
+  } catch (error) {
+    res.status(500).json({ message: 'Error actualizando la tarea', error });
+  }
+});
 
-router.get("/id/:_id", async(req, res) => {
-    try {
-        const task = await Task.findById(req.params._id);
-        res.send(task);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({
-            message: "There was a problem with the task with _id number: " +
-                req.params._id,
-        });
-    }
-}, )
+// DELETE /id/:_id - Eliminar una tarea
+router.delete('/id/:_id', async (req, res) => {
+  try {
+    const task = await Task.findByIdAndDelete(req.params._id);
+    if (!task) return res.status(404).json({ message: 'Tarea no encontrada' });
+    res.status(200).json({ message: 'Tarea eliminada' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error eliminando la tarea', error });
+  }
+});
 
-//MARK TASK AS COMPLETED (en este endpoint no le permitimos que edite el titulo)
-
-router.put("/markAsCompleted/:_id", async(req, res) => {
-        try {
-            const task = await Task.findByIdAndUpdate(
-                req.params._id, {
-                    completed: true,
-                }, { new: true }
-            );
-            res.send({ message: "Task successfully updated", task });
-        } catch (error) {
-            console.error(error);
-            res.status(500).send({
-                message: "There was a problem trying to update the task with _id: " +
-                    req.params._id,
-            });
-        }
-    }),
-
-    //UPDATE TASK
-
-    router.put("/id/:_id", async(req, res) => {
-        try {
-            const task = await Task.findByIdAndUpdate(req.params._id, req.body, { new: true })
-            res.send({ message: "task successfully updated", task });
-        } catch (error) {
-            console.error(error);
-        }
-    }),
-
-    //DELETE TASK
-
-    router.delete("/id/:_id", async(req, res) => {
-        try {
-            const task = await Task.findByIdAndDelete(req.params._id);
-            res.send({ message: "task deleted", task });
-        } catch (error) {
-            console.error(error);
-            res
-                .status(500)
-                .send({ message: "There was a problem trying to delete a task" });
-        }
-    })
 module.exports = router;
